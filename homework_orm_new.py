@@ -197,7 +197,7 @@ db_config = {
 
 Database.connect(**db_config)
 
-man = Man(id='njk', name='Ivan', sex='male')
+man = Man(id=1, name='Ivan', sex='male')
 man.save()
 
 user = User(id=1, name='name1')
