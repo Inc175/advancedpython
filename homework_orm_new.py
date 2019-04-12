@@ -20,9 +20,17 @@ class IntField(Field):
     def __init__(self, required=True, default=None):
         super().__init__(int, required, default)
 
+    def get_sql_string_name(self):
+        return 'INT'
+
+
 class StringField(Field):
     def __init__(self, required=True, default=None):
         super().__init__(str, required, default)
+
+    def get_sql_string_name(self):
+        return 'TEXT'    
+
 
 class Manage:
     def __init__(self):
@@ -97,6 +105,8 @@ class Model(metaclass=ModelMeta):
     class Meta:
         table_name = ''
 
+    # sql_string_name_dict = {}
+
     objects = Manage()
     # todo DoesNotExist
     # связана с работой модели
@@ -120,18 +130,24 @@ class Model(metaclass=ModelMeta):
             value = field.validate(kwargs.get(field_name))
             setattr(self, field_name, value)
 
-    def map_field_type(self, t):
-        if t == int:
-            return 'INT'
+    def get_sql_string_name_dict(self):
+        sql_string_name_dict = {}
+        for field_name, field in self._fields.items():
+            sql_string_name_dict[field_name] = field.get_sql_string_name()
 
-        if t == str:
-            return 'TEXT'
+        return sql_string_name_dict
+            
+    # def map_field_type(self, t):
+    #     if t == int:
+    #         return 'INT'
+
+    #     if t == str:
+    #         return 'TEXT'
 
     def make_fields_stmt(self, meta_fields):
         fields = []
         for k, v in meta_fields.items():
-            f_type = self.map_field_type(v)
-            fields.append('{f_name} {f_type}'.format(f_name=k, f_type=f_type))
+            fields.append('{f_name} {f_type}'.format(f_name=k, f_type=v))
         return ','.join(fields)
 
     def save(self):
@@ -140,13 +156,10 @@ class Model(metaclass=ModelMeta):
         # check that table exists
         if not result:
             stmt = 'CREATE TABLE {table_name} ({fields})'
-
-            user_meta_fields = {}
             
-            for attr_name, attr_value in self.__dict__.items():
-                user_meta_fields[attr_name] = type(attr_value)
+            sql_string_name_dict = self.get_sql_string_name_dict()
 
-            fields = self.make_fields_stmt(user_meta_fields)
+            fields = self.make_fields_stmt(sql_string_name_dict)
             create_table = stmt.format(table_name=self.Meta.table_name, fields=fields)
 
             Database.execute(create_table)
@@ -163,7 +176,7 @@ class Database(object):
     @classmethod
     def connect(cls, **db_config):
         cls.conn = mysql.connector.connect(host=db_config.get('host', 'localhost'),
-                                   user=db_config.get('user', 'root'), password=db_config.get('password', '1234'),
+                                   user=db_config.get('user', 'root'), password=db_config.get('password', 'bi66t89m'),
                                    database=db_config.get('database', 'new_schema_test'))
 
         cls.conn.autocommit = cls.autocommit
@@ -174,7 +187,7 @@ class Database(object):
         cursor = cls.conn.cursor()
         cursor.execute(*args)
         return cursor
-
+ 
 class User(Model):
     id = IntField()
     name = StringField()
@@ -191,7 +204,7 @@ class Man(User):
 db_config = {
     'host': 'localhost',
     'user': 'root',
-    'password': '1234',
+    'password': 'bi66t89m',
     'database': 'new_schema_test'
 }
 
